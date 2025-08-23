@@ -31,7 +31,7 @@ If you use CGViz in your research or teaching, you can cite this repository:
 ## Table of contents
 
 - [Topics / Algorithms implemented so far](#implemented-so-far)
-- [Topics / Algorithms to be added soon](#to-be-added-soon™️)
+- [Topics / Algorithms to be added soon](#to-be-added-soon)
 - [Keyboard shortcuts](#keyboard-shortcuts)
 - [GIFs of implemented algorithms](#gifs)
 - [Local development / Serving](#local-development--serving)
@@ -69,7 +69,8 @@ See [GIFs](#gifs) below to see some of these in action.
   - Interval Tree
   - Segment Tree
 
-### To be added soon™️
+### To be added soon
+(Soon™️)
 
 Please feel free to implement any of these (or suggest your own) and open a PR! See [Contributing](#contributing) below for more details.
 
