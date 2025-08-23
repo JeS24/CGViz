@@ -1,0 +1,2020 @@
+/**
+* Styles for the CGViz app.
+*
+* Known Issues: FIXME:
+* - [ ] Hardcoded pixel sizes. Switch to relative units or viewport units.
+* - [ ] Better responsiveness for smaller screens. There are just too many elements on the screen currently. Hard to optimize this.
+* - [ ] Group together media rules by breakpoints. I wrote them per element / element-group and now, they are all over the place. Shouldn't affect functionality, but makes it harder to maintain.
+* - [ ] ...
+**/
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg-color: #f5f5f5;
+  --control-bg: #34495e;
+  --control-color: white;
+  --button-bg: #3498db;
+  --button-hover: #2980b9;
+  --button-disabled: #7f8c8d;
+  --header-color: #ecf0f1;
+  --text-color: #bdc3c7;
+  --canvas-bg: white;
+  --canvas-border: #34495e;
+  --range-fill: #5ec1ff; /* accent for slider fill */
+}
+
+body.dark-mode {
+  --bg-color: #121212;
+  --control-bg: #2a2a2a;
+  --control-color: #e0e0e0;
+  --button-bg: #2196f3;
+  --button-hover: #1976d2;
+  --button-disabled: #616161;
+  --header-color: #e0e0e0;
+  --text-color: #b0b0b0;
+  --canvas-bg: #1e1e1e;
+  --canvas-border: #2a2a2a;
+  --range-fill: #2aa6ff;
+}
+
+body {
+  font-family: "Martian Mono", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--bg-color);
+  transition: background-color 0.3s ease;
+}
+/* Base font for the entire app */
+html,
+body,
+#container {
+  font-family: "Martian Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
+    "Roboto Mono", "Courier New", monospace;
+  /* TODO: 95 looks good for now, but needs testing on HiDPI displays */
+  font-size: 95%;
+}
+
+#container {
+  display: flex;
+  height: 100vh;
+}
+
+.control-group {
+  margin-bottom: 20px;
+}
+
+.control-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.control-group select,
+.control-group input[type="range"] {
+  width: 100%;
+  padding: 8px;
+  border: none;
+  border-radius: 4px;
+  background-color: var(--control-bg);
+  color: var(--control-color);
+}
+
+.control-group select {
+  cursor: pointer;
+}
+
+.control-group button {
+  width: 40px;
+  height: 40px;
+  background-color: var(--button-bg);
+  color: var(--control-color);
+  border: none;
+  padding: 0;
+  margin: 2px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s;
+}
+
+.control-group button:hover {
+  background-color: var(--button-hover);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.control-group button:disabled {
+  background-color: var(--button-disabled);
+  cursor: not-allowed;
+}
+
+/* Controls Overlay */
+.control-overlay {
+  width: 85%;
+  /* width: 98%; */
+  /* width: auto; */
+  position: fixed;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  background: rgba(12, 12, 12, 0.72);
+  color: white;
+  padding: 8px 14px;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  z-index: 1200; /* sit above canvas controls */
+  pointer-events: auto;
+}
+
+/* Keyboard shortcuts */
+.keyboard-shortcuts {
+  width: 100%;
+  font-size: 105%;
+  line-height: 1.36;
+}
+.keyboard-shortcuts h4 {
+  font-size: 1.1em;
+  margin-bottom: 8px;
+  color: var(--header-color);
+}
+#keyboard-shortcuts-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Popover styles for Randomizer settings */
+.popover {
+  display: none;
+  position: fixed;
+  left: 50%;
+  bottom: 80px;
+  width: 380px;
+  max-width: calc(100% - 32px);
+  background: rgba(10, 10, 10, 0.96);
+  color: #e6eef8;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  border-radius: 10px;
+  z-index: 1400;
+
+  /* Popover open/close animation (desktop) and bottom-sheet slide-up (mobile) */
+  opacity: 0;
+  transform: translateY(8px) scale(0.995);
+  transition: opacity 180ms ease, transform 220ms cubic-bezier(0.2, 0.9, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.popover[aria-hidden="false"] {
+  display: block;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* Mobile bottom-sheet: slide from below */
+@media (max-width: 640px) {
+  .popover {
+    transform: translateY(100%);
+    transition: transform 260ms cubic-bezier(0.2, 0.95, 0.28, 1),
+      opacity 220ms ease;
+  }
+  .popover[aria-hidden="false"] {
+    transform: translateY(0);
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.6);
+  }
+}
+
+/* Focus styles inside popover */
+.popover :is(button, a, input, select, textarea):focus {
+  outline: 3px solid rgba(52, 152, 219, 0.35);
+  outline-offset: 2px;
+}
+.popover-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* Sleek global range (slider) styling */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 10px;
+  /* NOTE: Layered background: first layer is the progress fill, second is the
+    track. background-size uses --range-percent so it can be transitioned. */
+  background-image: linear-gradient(to right, var(--range-fill) 0 100%),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.06), rgba(0, 0, 0, 0.04));
+  background-size: var(--range-percent, 0%) 100%, 100% 100%;
+  background-repeat: no-repeat;
+  border-radius: 999px;
+  outline: none;
+  transition: background-size 220ms cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+/* Webkit track */
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 10px;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 999px;
+}
+
+/* Webkit thumb */
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  margin-top: -6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--button-bg);
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  transform: translateY(2px);
+  transition: transform 160ms cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+/* Firefox */
+input[type="range"]::-moz-range-track {
+  height: 10px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 999px;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--button-bg);
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
+  transform: translateY(2px);
+  transition: transform 160ms cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+/* Focus and hover states */
+input[type="range"]:focus::-webkit-slider-thumb,
+input[type="range"]:hover::-webkit-slider-thumb,
+input[type="range"]:focus::-moz-range-thumb,
+input[type="range"]:hover::-moz-range-thumb {
+  transform: translateY(-1px) scale(1.05);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.28);
+}
+input[type="range"]:focus {
+  outline: none;
+  box-shadow: 0 0 0 6px rgba(52, 152, 219, 0.08);
+}
+
+/* Dark mode tweaks for range */
+body.dark-mode input[type="range"]::-webkit-slider-thumb,
+body.dark-mode input[type="range"]::-moz-range-thumb {
+  border: 2px solid rgba(0, 0, 0, 0.6);
+  background: var(--button-bg);
+}
+
+/* Popover-specific */
+.popover.popover-randomize input[type="range"] {
+  height: 8px;
+  background-image: linear-gradient(to right, var(--range-fill) 0 100%),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.02));
+  background-size: var(--range-percent, 0%) 100%, 100% 100%;
+  background-repeat: no-repeat;
+  transition: background-size 220ms cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+.popover.popover-randomize input[type="range"]::-webkit-slider-thumb {
+  width: 14px;
+  height: 14px;
+  margin-top: -3px;
+  border: 2px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Ensures native select elements are readable in both light and dark themes */
+select,
+.control-group-randomize select,
+.popover select,
+.popover.popover-randomize select,
+select:focus {
+  background-color: var(--control-bg);
+  color: var(--control-color);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  outline: none;
+  /* Ensures selects use Martian Mono when available */
+  font-family: "Martian Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
+    "Roboto Mono", "Courier New", monospace;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Light mode: make dropdown option text slightly darker */
+body:not(.dark-mode) select option,
+body:not(.dark-mode) .control-group select option,
+body:not(.dark-mode) .popover select option {
+  color: #2b2b2b;
+  background-color: var(--canvas-bg);
+  font-family: "Martian Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
+    "Roboto Mono", "Courier New", monospace;
+}
+
+select option,
+.popover select option,
+.control-group select option {
+  background-color: var(--canvas-bg);
+  color: var(--text-color);
+  font-family: "Martian Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
+    "Roboto Mono", "Courier New", monospace;
+}
+
+/* Main algorithm select dropdown */
+#algorithm-select {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  transition: box-shadow 160ms ease, border-color 160ms ease,
+    transform 120ms ease;
+}
+
+#algorithm-select:focus {
+  outline: none;
+  border-color: rgba(94, 192, 255, 0.9);
+  box-shadow: 0 6px 18px rgba(94, 192, 255, 0.12),
+    0 0 0 6px rgba(94, 192, 255, 0.06);
+  transform: translateY(-1px);
+}
+
+/* Dark mode adjustments for selects/options */
+body.dark-mode select,
+body.dark-mode .control-group select,
+body.dark-mode .popover select {
+  background-color: var(--control-bg);
+  color: var(--control-color);
+  font-family: "Martian Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
+    "Roboto Mono", "Courier New", monospace;
+}
+body.dark-mode select option,
+body.dark-mode .popover select option {
+  background-color: var(--control-bg);
+  color: var(--control-color);
+  font-family: "Martian Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
+    "Roboto Mono", "Courier New", monospace;
+}
+
+/* Custom appearance to ensure arrow is visible on dark backgrounds */
+select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: linear-gradient(
+      45deg,
+      transparent 50%,
+      var(--control-color) 50%
+    ),
+    linear-gradient(135deg, var(--control-color) 50%, transparent 50%),
+    linear-gradient(to right, rgba(0, 0, 0, 0.06), rgba(0, 0, 0, 0.06));
+  background-position: calc(100% - 18px) calc(1em + 2px),
+    calc(100% - 13px) calc(1em + 2px), 100% 0;
+  background-size: 6px 6px, 6px 6px, 1px 1.5em;
+  background-repeat: no-repeat;
+}
+
+.control-group select::-ms-expand {
+  display: none; /* hide default arrow in IE/Edge */
+}
+
+/* Randomizer popover */
+.popover.popover-randomize {
+  width: 420px;
+  max-width: calc(100% - 32px);
+  right: 20px;
+  bottom: 90px;
+  background: linear-gradient(
+    180deg,
+    rgba(12, 12, 12, 0.96),
+    rgba(6, 6, 6, 0.96)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+
+  padding: 0;
+  z-index: 1400;
+  pointer-events: auto;
+}
+
+/* Popover header */
+.popover.popover-randomize .popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  font-weight: 700;
+  color: var(--header-color, #e6eef8);
+  background: transparent;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 14px 14px 0 0;
+}
+
+/* Close button (×) */
+.popover.popover-randomize .popover-close,
+.popover.popover-randomize .popover-close:focus {
+  background: transparent;
+  border: none;
+  color: #cfe6ff;
+  font-size: 18px;
+  line-height: 1;
+  padding: 6px 8px;
+  cursor: pointer;
+  border-radius: 8px;
+}
+.popover.popover-randomize .popover-close:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Styles for dynamically added control elements */
+#rand-dynamic-options {
+  display: grid;
+  gap: 18px;
+}
+
+/* Popover body */
+.popover-body {
+  padding: 12px;
+  display: grid;
+  gap: 18px;
+}
+
+.popover.popover-randomize .control-group-randomize {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: stretch;
+}
+
+.control-group-randomize-buttons {
+  margin-top: 16px;
+}
+
+/* Layout for the Point count row: label left, value right, slider full-width below */
+.popover.popover-randomize .count-row {
+  gap: 4px;
+}
+.popover.popover-randomize .count-row-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 6px;
+}
+.popover.popover-randomize .count-row-header label {
+  margin: 0; /* Ensures label doesn't add extra spacing */
+}
+.popover.popover-randomize #rand-count {
+  width: 100%;
+  margin-top: 2px;
+}
+
+.popover.popover-randomize label {
+  font-size: 13px;
+  color: var(--label-color, #dfe9f8);
+  text-align: left;
+  font-weight: 600;
+}
+
+/* Randomizer Inputs/selects */
+.popover.popover-randomize select,
+.popover.popover-randomize input[type="number"],
+.popover.popover-randomize input[type="text"] {
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.02);
+  color: #e6eef8;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+.popover.popover-randomize input[type="range"] {
+  width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  /* Left-right tabs */
+  background-image: linear-gradient(to right, var(--range-fill) 0 100%),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+  background-size: var(--range-percent, 0%) 100%, 100% 100%;
+  background-repeat: no-repeat;
+  border-radius: 6px;
+}
+
+.popover.popover-randomize input[type="range"]::-webkit-slider-thumb {
+  width: 14px;
+  height: 14px;
+  margin-top: -3px;
+  border-radius: 50%;
+  background: var(--button-bg);
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.28);
+}
+
+.popover.popover-randomize .control-apply {
+  min-width: 84px;
+  padding: 8px 12px;
+  font-weight: 700;
+  background: linear-gradient(
+    180deg,
+    var(--button-bg),
+    color-mix(in srgb, var(--button-bg) 88%, black 12%)
+  );
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(12, 90, 160, 0.12);
+}
+
+.popover.popover-randomize .control-cancel {
+  min-width: 84px;
+  padding: 8px 12px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.02);
+  color: #d6dee8;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* Split-button (small action + chevron) inside overlay */
+.split-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+.split-button > button {
+  background: transparent;
+  border: none;
+  color: var(--control-color, #e6eef8);
+  padding: 8px 10px;
+  cursor: pointer;
+}
+.split-button > .split-toggle[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+  transition: transform 160ms ease;
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+  .popover.popover-randomize {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    border-radius: 12px 12px 0 0;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+}
+
+.popover.popover-randomize .control-cancel {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: #cbd6e6;
+}
+.popover.popover-randomize .control-apply {
+  background: var(--button-bg);
+  color: white;
+  border: none;
+}
+.popover .control-apply {
+  background: var(--button-bg);
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+.popover .control-cancel {
+  background: transparent;
+  color: #cbd6e6;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+
+/* Responsive: on small screens transform popover into a bottom-sheet */
+@media (max-width: 640px) {
+  .popover {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    border-radius: 12px 12px 0 0;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+
+  .popover.popover-randomize {
+    width: 100%;
+    right: 0;
+    bottom: 0;
+    border-radius: 12px 12px 0 0;
+    padding: 8px 10px 14px 10px;
+  }
+
+  /* Stack apply/cancel on small screens */
+  .popover.popover-randomize .controls-row {
+    flex-direction: column-reverse;
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  .control-overlay {
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 10px;
+    padding: 8px;
+    gap: 6px;
+  }
+}
+
+/* Ensures the overlays and all its child controls capture pointer/touch events,
+   so that, the interactions over the panel do not fall through to the canvas below. */
+.control-overlay,
+.control-overlay * {
+  pointer-events: auto;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.control-overlay button,
+.control-overlay select,
+.control-overlay input,
+.control-overlay .collapsible-content {
+  touch-action: auto;
+}
+#top-left-overlays,
+.panel-overlay,
+.panel-overlay * {
+  pointer-events: auto;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.panel-overlay .collapsible-content {
+  touch-action: auto; /* allow touch scrolling inside panel bodies */
+}
+
+.control-overlay .control-group {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  padding: 0;
+}
+
+.control-overlay .control-group label,
+.control-overlay .control-group select,
+.control-overlay .control-group input,
+.control-overlay .control-group button {
+  background: transparent;
+  color: inherit;
+  border-radius: 6px;
+}
+
+.control-overlay .control-group select,
+.control-overlay .control-group input[type="range"] {
+  width: auto;
+  min-width: 120px;
+  padding: 6px 8px;
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.collapsible-header {
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: color 0.3s;
+}
+
+.collapsible-header:hover {
+  color: #3498db;
+}
+
+.collapsible-content {
+  max-height: 300px;
+  overflow-y: auto;
+  transition: max-height 0.3s ease-out;
+  margin-top: 10px;
+}
+
+.collapsible-content.collapsed {
+  max-height: 0;
+  overflow: hidden;
+  margin-top: 0;
+}
+
+/* Algorithm steps & events styles */
+#algorithm-steps-panel-body.collapsible-content {
+  padding: 0px 20px;
+}
+
+#steps-list {
+  padding-left: 20px;
+  color: #bdc3c7;
+  font-size: 0.85em;
+}
+
+#steps-list li {
+  margin-bottom: 8px;
+  padding: 4px 8px;
+  border-radius: 3px;
+  transition: background-color 0.3s;
+}
+
+#steps-list li.current-step {
+  background-color: #3498db;
+  color: white;
+  font-weight: bold;
+}
+
+#steps-list li.completed-step {
+  background-color: #27ae60;
+  color: white;
+}
+
+#steps-list li.backtrack-step {
+  background-color: #9b59b6;
+  color: white;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+#event-sets-content {
+  font-size: 0.8em;
+  color: #bdc3c7;
+}
+
+.event-group {
+  margin-bottom: 15px;
+  padding: 8px;
+  background-color: #34495e;
+  border-radius: 4px;
+}
+
+.event-group h4 {
+  color: #ecf0f1;
+  margin-bottom: 8px;
+  font-size: 0.9em;
+}
+
+.event-list {
+  list-style: none;
+  padding: 0;
+}
+
+.event-list li {
+  padding: 2px 0;
+  border-bottom: 1px solid #2c3e50;
+}
+
+.event-list li:last-child {
+  border-bottom: none;
+}
+
+.event-processed {
+  color: #27ae60;
+}
+
+.event-accepted {
+  color: #27ae60;
+  font-weight: bold;
+}
+
+.event-rejected {
+  color: #e74c3c;
+  text-decoration: line-through;
+  font-style: italic;
+}
+
+.event-current {
+  color: #f39c12;
+  font-weight: bold;
+  background-color: rgba(243, 156, 18, 0.2);
+  padding: 2px 4px;
+  border-radius: 2px;
+}
+
+.event-pending {
+  color: #bdc3c7;
+}
+
+.event-backtrack {
+  color: #9b59b6;
+  font-weight: bold;
+  background-color: rgba(155, 89, 182, 0.2);
+  padding: 2px 4px;
+  border-radius: 2px;
+}
+
+.event-list li {
+  padding: 4px 8px;
+  margin: 2px 0;
+  border-radius: 3px;
+  transition: all 0.3s ease;
+}
+
+.event-list li:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.event-group {
+  border-left: 3px solid #3498db;
+  transition: border-color 0.3s ease;
+}
+
+.event-group:hover {
+  border-left-color: #f39c12;
+}
+
+/* Canvas styles */
+#canvas-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--canvas-bg);
+  transition: background-color 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+}
+
+canvas {
+  border: 2px dashed var(--canvas-border);
+  border-radius: 4px;
+  margin: 0;
+  padding: 0;
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+body.dark-mode canvas {
+  border-color: rgba(255, 255, 255, 0.06);
+  border-color: var(--canvas-border);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02),
+    0 6px 18px rgba(0, 0, 0, 0.6);
+}
+
+/* Use color-mix, when supported, for improved contrast in dark mode */
+@supports (color-mix(in srgb, var(--canvas-border) 70%, white 30%)) {
+  body.dark-mode canvas {
+    border-color: color-mix(in srgb, var(--canvas-border) 70%, white 30%);
+  }
+}
+
+#fps-counter {
+  position: absolute;
+  top: 60px;
+  right: 10px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 3px;
+  font-size: 12px;
+  display: none;
+  z-index: 1000;
+  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.control-group #export-format {
+  width: 60%;
+  display: inline-block;
+  margin-right: 5px;
+}
+
+.stats-container {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 3px;
+  font-size: 12px;
+  display: none;
+  z-index: 1000;
+  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.canvas-controls {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 5px;
+  z-index: 1000;
+  pointer-events: auto;
+}
+
+.canvas-controls button {
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  width: 40px;
+  height: 40px;
+  padding: 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s;
+  pointer-events: auto;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Toggle-style icon controls (Dark mode / FPS) */
+.control-toggle-group {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.control-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 6px;
+  cursor: pointer;
+  transition: transform 0.06s ease, box-shadow 0.12s ease,
+    background-color 0.12s ease;
+}
+
+.control-toggle input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  clip: rect(0 0 0 0);
+  overflow: hidden;
+}
+
+.control-toggle .control-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+}
+
+/* Duality toggle icon */
+.control-toggle:has(.control-icon.control-duality) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+}
+
+.control-toggle:has(.control-icon.control-duality):hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.control-icon.control-duality i,
+.control-icon.control-duality svg {
+  width: 20px;
+  height: 20px;
+  line-height: 20px;
+  display: block;
+}
+
+.control-toggle:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.45);
+}
+
+/* Active (checked) visuals: color the icon background and stroke */
+.control-toggle input:checked + .control-icon {
+  background-color: var(--button-bg, #3498db);
+  color: white;
+  border-radius: 4px;
+  padding: 3px;
+}
+
+/* Instructions panel styling */
+.instructions-panel {
+  position: absolute;
+  right: 10px;
+  top: 58px;
+  width: 560px;
+  background-color: rgba(10, 10, 10, 0.94);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 18px;
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+  z-index: 1150;
+  pointer-events: auto;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  transform-origin: right bottom;
+  opacity: 0;
+  transform: scale(0.98) translateY(6px);
+  transition: opacity 180ms ease, transform 180ms cubic-bezier(0.2, 0.9, 0.3, 1);
+  will-change: opacity, transform;
+  visibility: hidden;
+  line-height: 1.5;
+}
+
+/* Top-left stacked overlays for algorithm steps and event sets */
+#top-left-overlays {
+  /* Fixed so panels remain over canvas */
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 1300;
+  pointer-events: auto;
+}
+
+.panel-overlay {
+  width: 360px;
+  max-height: 420px;
+  background: rgba(10, 10, 10, 0.92);
+  color: #e6eef8;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  background: linear-gradient(0deg, rgba(255, 255, 255, 0.01), transparent);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+/* Accessible panel toggle button */
+.panel-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: inherit;
+  padding: 6px 8px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.panel-toggle:focus {
+  outline: 3px solid rgba(52, 152, 219, 0.35);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.panel-title {
+  font-size: 16px;
+  text-align: left;
+}
+
+.panel-overlay .collapsible-content {
+  padding: 8px 10px;
+  max-height: 380px;
+  overflow-y: auto;
+  transition: max-height 220ms ease;
+}
+
+/* Duality Legend specific layout */
+#duality-legend .collapsible-content {
+  padding: 0 14px;
+}
+
+#duality-legend .legend-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.25;
+  color: inherit;
+  margin-bottom: 10px;
+}
+
+#duality-legend .legend-header-text {
+  font-size: 12px;
+  color: var(--text-color);
+  opacity: 0.95;
+  margin-bottom: 4px;
+}
+
+#duality-legend .legend-icon {
+  width: 14px;
+  height: 14px;
+  vertical-align: -2px;
+  margin: 0 6px;
+}
+
+#duality-legend .legend-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#duality-legend .legend-marker {
+  flex: 0 0 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#duality-legend .marker-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+#duality-legend .marker-line {
+  width: 26px;
+  height: 0;
+  border-top: 3px solid currentColor;
+  display: inline-block;
+}
+
+#duality-legend .marker-line.dashed {
+  border-top-style: dashed;
+}
+
+#duality-legend .legend-label {
+  font-size: 13px;
+  color: inherit;
+}
+
+.panel-overlay .collapsible-content.collapsed {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.panel-overlay ol#steps-list {
+  padding-left: 18px;
+  margin: 0;
+}
+
+#step-log-content {
+  scroll-behavior: smooth;
+  padding-bottom: 0.5rem;
+}
+
+#step-log-content .step-entry:last-child {
+  /* To ensure the last step entry avoids clipping */
+  margin-bottom: 1rem;
+}
+
+/* To keep Step Log header outside the scrollable area and prevent 
+header compression during content updates/scrolls. */
+#step-log-panel .panel-header {
+  flex-shrink: 0;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+}
+
+#step-log {
+  overflow-y: auto;
+  padding-bottom: 1.5rem; /* ensures last entry isn't cut off */
+  padding: 0;
+}
+
+/* Enable momentum scrolling on iOS Safari only (applied when supported) */
+@supports (-webkit-overflow-scrolling: touch) {
+  #step-log {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Reserve scrollbar gutter space on supporting browsers */
+@supports (scrollbar-gutter: stable) {
+  #step-log {
+    scrollbar-gutter: stable both-edges;
+  }
+}
+
+#step-log-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+#step-log-panel .collapsible-content {
+  flex: 1 1 auto;
+  max-height: none;
+}
+
+#step-log-panel .collapsible-content.collapsed {
+  flex: 0 0 auto;
+  max-height: 0;
+  overflow: hidden;
+}
+
+#step-log-panel .panel-header {
+  position: relative;
+  z-index: 2;
+}
+.instructions-sep {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.2);
+  margin: 10px 0;
+}
+.instructions-panel.open {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  visibility: visible;
+}
+.instructions-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.instructions-panel-header button {
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  color: #cbc4c4;
+  padding: 4px 6px;
+}
+.instructions-panel-body {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  font-size: 12px;
+  color: #e6eef8;
+}
+.instructions-list {
+  flex: 1 1 55%;
+}
+.instructions-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.instructions-list li {
+  padding: 3px 3px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.03);
+  margin-bottom: 0px;
+  font-size: 13px;
+}
+.instructions-list li strong {
+  width: 160px;
+  display: inline-block;
+}
+.algorithm-info {
+  flex: 0 0 45%;
+  background: rgba(0, 0, 0, 0.03);
+  padding: 8px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+.algorithm-info h4 {
+  margin: 0 0 6px 0;
+  font-size: 13px;
+}
+/* Styles for the Resources block displayed under algorithm info */
+.algorithm-info-resources {
+  flex: 0 0 100%;
+  background: rgba(0, 0, 0, 0.03);
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-color, #e6eef8);
+}
+.algorithm-info-resources-list {
+  margin: 0;
+  padding-left: 12px; /* reserve space for list-numbering */
+  color: #bdc3c7;
+}
+.algorithm-info-resources-list li {
+  margin: 6px 0;
+  font-size: 12px;
+  color: #bdc3c7;
+  margin-left: 8px; /* small left offset for visual separation */
+}
+.algorithm-info-resource-item a,
+.algorithm-info-resources-list a {
+  color: #3498db;
+  text-decoration: underline;
+}
+.algorithm-info-resource-item a:hover,
+.algorithm-info-resources-list a:hover {
+  color: #f39c12;
+}
+
+.instructions-container {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  right: 10px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  z-index: 1000;
+  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+
+.instructions-content {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.instructions-content strong {
+  color: #f39c12;
+  white-space: nowrap;
+}
+
+/* Small screen adjustment */
+@media (max-width: 640px) {
+  .instructions-panel {
+    width: calc(100% - 20px);
+    top: 10px;
+    z-index: 1600;
+  }
+  .instructions-panel-body {
+    flex-direction: column;
+  }
+  .instructions-list li strong {
+    display: block;
+    width: auto;
+    margin-bottom: 4px;
+  }
+}
+
+/* Randomize controls */
+#randomize-controls .rand-row-inline {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+#randomize-settings {
+  margin-top: 8px;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: 1fr;
+}
+
+#duality-toggle-container.hidden {
+  display: none;
+}
+
+.canvas-controls button:hover {
+  background-color: rgba(0, 0, 0, 1);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+.canvas-controls button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.duality-controls {
+  position: absolute;
+  top: 60px;
+  right: 10px;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 10px;
+  border-radius: 4px;
+  z-index: 1000;
+  pointer-events: auto;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.duality-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.duality-toggles label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.duality-toggles input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+}
+
+.step-entry {
+  padding: 8px 12px;
+  margin: 4px 0;
+  border-radius: 4px;
+  border-left: 3px solid #3498db;
+  background-color: rgba(52, 73, 94, 0.3);
+  font-size: 0.9em;
+  line-height: 1.4;
+  transition: all 0.3s ease;
+}
+
+.step-entry.current-step {
+  background-color: rgba(52, 152, 219, 0.3);
+  border-left-color: #f39c12;
+  font-weight: bold;
+}
+
+.step-entry:hover {
+  background-color: rgba(52, 73, 94, 0.5);
+}
+
+/* Info button */
+button#info-btn {
+  border: 1.75px dashed rgba(212, 175, 55, 0.9);
+  padding: 6px;
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+}
+
+button#info-btn:hover,
+#github-btn:hover {
+  background-color: rgba(212, 175, 55, 0.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* GitHub button (<a>) */
+#github-btn {
+  border: 1.75px dashed rgba(212, 175, 55, 0.9);
+  border-radius: 6px;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  background: transparent;
+}
+#github-btn svg {
+  display: block;
+  color: white;
+}
+#github-btn:hover,
+#github-btn:focus-within {
+  background-color: rgba(212, 175, 55, 0.08);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+#github-btn .icon-button:focus {
+  outline: 3px solid rgba(212, 175, 55, 0.18);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.control-overlay .step-info-container {
+  /* Full-width first row */
+  background: rgba(14, 14, 14, 0.6);
+  color: var(--header-color, #fff);
+  border-radius: 12px;
+  position: static;
+  display: flex;
+  align-items: center;
+  flex-basis: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 8px 12px; /* inner padding to match controls */
+  font-size: 12px;
+  z-index: 1000;
+  /* Ensures the overlay area itself captures pointer events so they do NOT fall
+     through to the underlying canvas. Interactive child controls (buttons,
+     inputs) already have pointer-events:auto via other rules. */
+  pointer-events: auto;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+.step-info-content {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  border: none;
+}
+
+.step-info-content strong {
+  color: #3498db;
+  white-space: nowrap;
+}
+
+/* Truncate long step text with ellipsis to keep controls aligned */
+#step-info {
+  display: inline-block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* leave room for label + padding */
+  /* max-width: calc(100% - 140px); */
+  max-width: 100%;
+}
+
+.canvas-tooltip {
+  position: absolute;
+  background-color: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: "Courier New", monospace;
+  z-index: 1001;
+  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
+  white-space: nowrap;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  #container {
+    flex-direction: column;
+  }
+  #canvas-container {
+    border-left: none;
+    border-top: 2px solid #34495e;
+  }
+
+  .instructions-container,
+  .step-info-container {
+    font-size: 11px;
+    padding: 6px 10px;
+  }
+
+  .instructions-content,
+  .step-info-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+}
+
+/* Focus Canvas/EyeOff: hide overlays & panels to leave only canvas + canvas-controls visible */
+body.focus-canvas {
+  /* marker property so the ruleset is not empty */
+  --focus-canvas-active: 1;
+}
+/* Focus Canvas/EyeOff: hide control overlays, top-right overlays, instructions panel, and other UI chrome */
+body.focus-canvas .control-overlay,
+body.focus-canvas .panel-overlay,
+body.focus-canvas .instructions-panel,
+body.focus-canvas #top-left-overlays,
+body.focus-canvas #canvas-tooltip,
+body.focus-canvas .stats-container,
+body.focus-canvas .popover,
+body.focus-canvas .duality-controls,
+body.focus-canvas .instructions-container {
+  display: none !important;
+}
+body.focus-canvas .canvas-controls .control-toggle-group,
+body.focus-canvas #reset-view-btn,
+body.focus-canvas #zoom-in-btn,
+body.focus-canvas #zoom-out-btn,
+body.focus-canvas #focus-canvas-btn,
+body.focus-canvas #fps-counter,
+body.focus-canvas #canvas-controls #fps-toggle,
+body.focus-canvas #canvas-controls .control-toggle {
+  pointer-events: auto !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Ensures the control-toggle group keeps its flex layout in focus mode */
+body.focus-canvas .canvas-controls .control-toggle-group {
+  display: flex !important;
+  gap: 6px !important;
+  align-items: center !important;
+}
+
+/* Ensures the fps counter is visible, if present */
+body.focus-canvas #fps-counter {
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+/* Keep canvas-controls visible, but ensure it's on top */
+body.focus-canvas .canvas-controls {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  z-index: 2000;
+}
+
+/* Focus icon active visuals: swap eye / eye-off */
+.control-focus .lucide-eye-off {
+  display: none;
+}
+body.focus-canvas .control-focus .lucide-eye {
+  display: none;
+}
+body.focus-canvas .control-focus .lucide-eye-off {
+  display: inline;
+}
+
+/* Prevent user interaction with the canvas while in focus mode, but allow animations/draw loop to continue.
+   We intentionally keep `pointer-events: none` on the canvas element, so that, the mouse/touch/wheel don't reach it.
+   The canvas-controls remain interactive (`pointer-events: auto`), so that, the user can toggle focus off. */
+body.focus-canvas #canvas-container canvas {
+  pointer-events: none !important;
+  touch-action: none !important; /* prevents touch gestures */
+}
+
+/* Also, disable scrolling on the canvas container to prevent wheel events from affecting it */
+body.focus-canvas #canvas-container {
+  pointer-events: auto; /* Allows the controls overlay inside container to still receive events */
+}
+
+/* Mobile tweaks: Makes #top-left-overlays part of the page flow so users can scroll to them */
+@media (max-width: 640px) {
+  /* Main #container flows vertically (allows page scrolling) */
+  #container {
+    height: auto;
+    min-height: 100vh;
+    flex-direction: column;
+  }
+
+  /* #canvas-container takes natural height, so that, the page can scroll */
+  #canvas-container {
+    width: 100%;
+    min-height: 56vh;
+    height: auto;
+    overflow: visible;
+    padding-bottom: 8px;
+  }
+
+  .stats-container {
+    left: 10px;
+    padding: 6px 10px;
+    border-radius: 6px;
+  }
+
+  #top-left-overlays {
+    position: static;
+    display: block;
+    width: 100%;
+    max-height: none;
+    overflow: visible;
+    padding: 0;
+    margin: 12px 0 0;
+    z-index: 1100;
+  }
+  #top-left-overlays .panel-overlay {
+    width: 100%;
+    max-width: none;
+    margin-bottom: 10px;
+  }
+
+  .control-overlay {
+    position: static;
+    width: 100%;
+    transform: none;
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: rgba(8, 8, 10, 0.86);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+    z-index: 1500; /* local stacking inside sheet */
+  }
+  .control-overlay .control-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .control-overlay .control-group select,
+  .control-overlay .control-group input[type="range"] {
+    flex: 1 1 auto;
+    min-width: 80px;
+  }
+
+  .mobile-bottom-sheet {
+    position: fixed;
+    left: 2dvw;
+    right: 2dvw;
+    bottom: 2dvh;
+    display: block;
+    width: calc(100dvw - 4dvw);
+    height: 23.25dvh; /* NOTE: If changing, also edit controls.js */
+    max-height: 72dvh; /* NOTE: If changing, also edit controls.js */
+    overflow-y: auto;
+    padding: 8px;
+    padding-top: 0;
+    border-radius: 14px;
+    background: linear-gradient(
+      180deg,
+      rgba(8, 8, 10, 0.6),
+      rgba(6, 6, 8, 0.56)
+    );
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
+    z-index: 1400;
+    transition: height 240ms cubic-bezier(0.2, 0.9, 0.2, 1),
+      transform 200ms ease;
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobile-bottom-sheet .sheet-content {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    touch-action: pan-y;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #step-log-panel .collapsible-content {
+    font-size: 12px;
+    padding: 0 8px;
+  }
+
+  /* Expanded state */
+  .mobile-bottom-sheet.expanded {
+    height: 72dvh;
+  }
+
+  /* Prevent the body/page from scrolling, while the sheet is active */
+  body.mobile-sheet-active {
+    overflow: hidden;
+    height: 100dvh;
+  }
+
+  body.mobile-sheet-active #canvas-container {
+    /* Ensures canvas remains full-viewport beneath the sheet */
+    position: relative;
+    z-index: 1;
+    /* Prevent gestures from reaching the canvas, while sheet is active */
+    touch-action: none;
+  }
+
+  .mobile-bottom-sheet .panel-overlay,
+  .mobile-bottom-sheet .control-overlay {
+    background: rgba(10, 10, 12, 0.48);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+  }
+
+  /* Sheet header: small handle + sheet control buttons */
+  .mobile-bottom-sheet .sheet-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 8px;
+    cursor: grab;
+    touch-action: manipulation;
+  }
+  .mobile-bottom-sheet .sheet-handle {
+    width: 56px;
+    height: 6px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.3);
+    margin-right: 8px;
+  }
+  .mobile-bottom-sheet .sheet-header-buttons {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .mobile-bottom-sheet .sheet-header button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: none;
+    background: rgba(255, 255, 255, 0.03);
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  /* Toggle icon rotation */
+  .mobile-bottom-sheet .sheet-header .toggle-icon {
+    display: inline-block;
+    transition: transform 240ms cubic-bezier(0.2, 0.9, 0.2, 1);
+    transform-origin: center;
+  }
+  .mobile-bottom-sheet .sheet-header .toggle-icon.rotated {
+    transform: rotate(180deg);
+  }
+  .mobile-bottom-sheet .sheet-header button:focus {
+    outline: 2px solid rgba(100, 150, 255, 0.9);
+    outline-offset: 2px;
+  }
+
+  #algorithm-select {
+    width: 120px;
+    min-width: 100px;
+  }
+
+  /* Ensure popovers keep mobile bottom-sheet behavior */
+  .popover.popover-randomize {
+    bottom: -140px;
+    width: 100%;
+    border-radius: 12px 12px 0 0;
+    max-height: 60vh;
+    overflow-y: auto;
+    z-index: 1500;
+  }
+
+  /* When focus-canvas is active on mobile, hide the whole bottom sheet. */
+  body.focus-canvas .mobile-bottom-sheet {
+    display: none !important;
+  }
+}
+
+/* TODO: Remove when properly responsive */
+/* Phone-only startup warning overlay */
+.phone-warning-overlay {
+  position: fixed;
+  inset: 0; /* top:0; right:0; bottom:0; left:0 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, rgba(6, 6, 8, 0.88), rgba(6, 6, 8, 0.92));
+  z-index: 99999;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  padding: 20px;
+}
+.phone-warning-overlay .phone-warning-content {
+  max-width: 520px;
+  width: 100%;
+  background: rgba(12, 12, 14, 0.96);
+  color: #fff;
+  padding: 18px;
+  border-radius: 12px;
+  text-align: left;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: space-between;
+  min-height: 140px;
+}
+.phone-warning-text {
+  font-size: 17px;
+  line-height: 1.4;
+  margin-bottom: 48px;
+  color: #ffcc66;
+}
+.phone-warning-countdown {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.95);
+  margin: 6px 0 12px 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.phone-warning-countdown #phone-warning-seconds {
+  font-size: 16px;
+  font-weight: 800;
+  color: #ffcc66;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+.phone-warning-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+}
+.phone-warning-actions label {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+.phone-warning-close {
+  background: var(--button-bg, #2b6cb0);
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  flex: 0 0 auto;
+  font-family: "Martian Mono", monospace;
+}
+.phone-warning-actions input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+}
+
+/* Smaller screens */
+@media (max-width: 360px) {
+  .phone-warning-overlay .phone-warning-content {
+    padding: 14px;
+    min-height: 120px;
+  }
+  .phone-warning-countdown #phone-warning-seconds {
+    font-size: 22px;
+  }
+}
+.phone-warning-line {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Ensures overlay is only visible on small screens */
+@media (min-width: 641px) {
+  .phone-warning-overlay {
+    display: none !important;
+  }
+}

@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Computational Geometry Interactive Demos</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/favicon-32x32.png" />
+    <!-- P5.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <!-- lucide-icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- PDF Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- GIF Recording -->
+    <script src="https://cdn.jsdelivr.net/gh/antimatter15/jsgif/GIFEncoder.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/antimatter15/jsgif/LZWEncoder.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/antimatter15/jsgif/NeuQuant.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/antimatter15/jsgif/b64.js"></script>
+    <!-- SVG Export -->
+    <script src="https://cdn.jsdelivr.net/npm/svg.js@3.1.2/dist/svg.min.js"></script>
+    <!-- Google Fonts: Martian Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Martian+Mono:ital,wght@0,400;0,700;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+
+  <body>
+    <div id="container">
+      <div id="canvas-container">
+        <!-- NOTE: p5.js canvas will be inserted here -->
+
+        <!-- Floating controls overlay -->
+        <div class="control-overlay" id="control-overlay">
+          <!-- Compact info: steps & events (collapsed by default) -->
+          <div class="control-group overlay" id="info-compact">
+            <!-- GitHub icon -->
+            <a
+              id="github-btn"
+              class="icon-button"
+              href="https://github.com/JeS24/CGViz"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="View source on GitHub"
+              aria-label="View source on GitHub"
+            >
+              <i data-lucide="github"></i>
+            </a>
+
+            <!-- Info icon -->
+            <button
+              id="info-btn"
+              title="Info & Instructions"
+              aria-expanded="false"
+            >
+              <i data-lucide="info"></i>
+            </button>
+
+            <!-- Algo select -->
+            <select id="algorithm-select" title="Choose an algorithm/topic">
+              <option value="segmentIntersection">
+                Line Sweep - Segment Intersection
+              </option>
+              <option value="rectangleUnion">
+                Line Sweep - Rectangle Union
+              </option>
+              <option value="rectangleIntersection">
+                Line Sweep - Rectangle Intersection
+              </option>
+              <option value="artGallery">Art Gallery Problem</option>
+              <option value="grahamScan">Convex Hull (Graham Scan)</option>
+              <option value="giftWrap">Convex Hull (Gift Wrap)</option>
+              <option value="quickHull">Convex Hull (QuickHull)</option>
+              <option value="triangulation">Polygon Triangulation</option>
+              <option value="delaunay">
+                Delaunay Triangulation (Bowyer-Watson)
+              </option>
+              <option value="voronoi">Voronoi Diagram (via Delaunay)</option>
+              <option value="fortuneVoronoi">
+                Voronoi Diagram (Fortune's Sweep)
+              </option>
+              <option value="duality">Point-Line Duality</option>
+              <option value="intervalTree">Interval Tree</option>
+              <option value="segmentTree">Segment Tree</option>
+            </select>
+          </div>
+
+          <div
+            class="control-group overlay playback-controls"
+            id="playback-controls"
+          >
+            <button id="clear-btn" title="Clear">
+              <i data-lucide="trash-2"></i>
+            </button>
+            <button id="prev-btn" title="Previous">
+              <i data-lucide="chevron-left"></i>
+            </button>
+            <button id="next-btn" title="Next">
+              <i data-lucide="chevron-right"></i>
+            </button>
+            <button id="play-btn" title="Play">
+              <i data-lucide="play"></i>
+            </button>
+
+            <!-- Split-button: main action (randomize) + toggle (open settings) -->
+            <div id="randomize-controls">
+              <div class="split-button">
+                <button
+                  id="randomize-btn"
+                  title="Randomize Inputs"
+                  aria-label="Randomize inputs"
+                >
+                  <i data-lucide="dices"></i>
+                </button>
+                <button
+                  id="randomize-toggle-btn"
+                  class="split-toggle"
+                  title="Randomize settings"
+                  aria-expanded="false"
+                  aria-controls="randomize-popover"
+                >
+                  <i data-lucide="chevron-up"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Randomize popover (hidden until toggled) -->
+          <div
+            class="popover popover-randomize"
+            id="randomize-popover"
+            role="dialog"
+            aria-modal="false"
+            aria-hidden="true"
+          >
+            <div class="popover-header">
+              <h3>Randomize Settings</h3>
+              <button
+                class="popover-close"
+                id="randomize-popover-close"
+                aria-label="Close randomize settings"
+              >
+                ×
+              </button>
+            </div>
+            <div class="popover-body">
+              <!-- Seed -->
+              <div class="control-group-randomize">
+                <label for="rand-seed">Seed (optional)</label>
+                <input id="rand-seed" type="number" placeholder="Random seed" />
+              </div>
+
+              <!-- Distribution -->
+              <div class="control-group-randomize">
+                <label for="rand-distribution">Distribution</label>
+                <select id="rand-distribution">
+                  <option value="uniform">Uniform</option>
+                  <option value="clustered">Clustered</option>
+                  <option value="circle">Circle</option>
+                  <option value="grid">Grid</option>
+                </select>
+              </div>
+
+              <!-- Algorithm-specific options to be injected here -->
+              <div id="rand-dynamic-options"></div>
+
+              <!-- Buttons -->
+              <div
+                class="control-group-randomize control-group-randomize-buttons"
+              >
+                <button id="randomize-apply" class="control-apply">
+                  Apply
+                </button>
+                <button id="randomize-cancel" class="control-cancel">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="control-group overlay">
+            <label for="speed-slider">Speed</label>
+            <input
+              aria-label="Playback speed"
+              type="range"
+              id="speed-slider"
+              min="1"
+              max="10"
+              value="5"
+            />
+          </div>
+
+          <div class="control-group overlay">
+            <label for="point-size">Size</label>
+            <input
+              aria-label="Point size"
+              type="range"
+              id="point-size"
+              min="3"
+              max="15"
+              value="8"
+            />
+          </div>
+
+          <div
+            class="control-group overlay hidden"
+            id="duality-toggle-container"
+          >
+            <label class="control-toggle" title="Duality">
+              <input
+                type="checkbox"
+                id="duality-toggle"
+                aria-label="Toggle duality view"
+                title="Toggle duality view"
+              />
+              <span class="control-icon control-duality">
+                <i data-lucide="square-split-horizontal"></i>
+              </span>
+            </label>
+          </div>
+
+          <div class="control-group overlay">
+            <select id="export-format" title="Choose export format">
+              <option value="png">PNG</option>
+              <option value="jpg">JPG</option>
+              <option value="svg">SVG</option>
+              <option value="pdf">PDF</option>
+              <option value="gif">GIF</option>
+            </select>
+            <button type="button" id="export-btn" title="Export">
+              <i data-lucide="download"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Top-left overlays placed outside the canvas container to avoid event capture by canvas -->
+    <div class="top-left-overlays" id="top-left-overlays">
+      <div class="panel-overlay" id="algorithm-steps-panel">
+        <div class="collapsible-header panel-header">
+          <button
+            class="panel-toggle"
+            aria-expanded="true"
+            aria-controls="algorithm-steps-panel-body"
+            id="algorithm-steps-panel-btn"
+            onclick="toggleCollapsible('algorithm-steps-panel-body', this)"
+          >
+            <span class="panel-title">Algorithm Steps</span>
+            <span class="panel-icon" id="algorithm-steps-panel-body-toggle"
+              ><i data-lucide="chevron-down"></i
+            ></span>
+          </button>
+        </div>
+        <div id="algorithm-steps-panel-body" class="collapsible-content">
+          <ol id="steps-list">
+            <!-- Steps populated by JavaScript -->
+          </ol>
+        </div>
+      </div>
+
+      <div class="panel-overlay" id="step-log-panel">
+        <div class="collapsible-header panel-header">
+          <button
+            class="panel-toggle"
+            aria-expanded="true"
+            aria-controls="step-log"
+            id="step-log-panel-btn"
+            onclick="toggleCollapsible('step-log', this)"
+          >
+            <span class="panel-title">Step Log</span>
+            <span class="panel-icon" id="step-log-toggle"
+              ><i data-lucide="chevron-down"></i
+            ></span>
+          </button>
+        </div>
+        <div id="step-log" class="collapsible-content">
+          <div id="step-log-content">
+            <p>
+              No steps recorded yet. Run the algorithm to see step-by-step
+              progress.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-overlay" id="event-sets-panel">
+        <div class="collapsible-header panel-header">
+          <button
+            class="panel-toggle"
+            aria-expanded="false"
+            aria-controls="event-sets-panel-body"
+            id="event-sets-panel-btn"
+            onclick="toggleCollapsible('event-sets-panel-body', this)"
+          >
+            <span class="panel-title">Event Sets</span>
+            <span class="panel-icon" id="event-sets-panel-body-toggle"
+              ><i data-lucide="chevron-down"></i
+            ></span>
+          </button>
+        </div>
+        <div id="event-sets-panel-body" class="collapsible-content collapsed">
+          <div id="event-sets-content">
+            <!-- Event sets populated by JavaScript -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Load geometry classes -->
+    <script src="js/common/utils.js"></script>
+    <script src="js/geometry/point.js"></script>
+    <script src="js/geometry/line.js"></script>
+    <script src="js/geometry/polygon.js"></script>
+    <script src="js/geometry/interval.js"></script>
+    <script src="js/geometry/dualLine.js"></script>
+    <script src="js/geometry/rectangle.js"></script>
+
+    <!-- Shared randomizer helper (NOTE: must load after geometry classes) -->
+    <script src="js/common/randomizer.js"></script>
+
+    <!-- Load algorithms -->
+    <script src="js/algorithms/grahamScan.js"></script>
+    <script src="js/algorithms/giftWrap.js"></script>
+    <script src="js/algorithms/quickHull.js"></script>
+    <script src="js/algorithms/segmentIntersection.js"></script>
+    <script src="js/algorithms/triangulation.js"></script>
+    <script src="js/algorithms/delaunay.js"></script>
+    <script src="js/algorithms/voronoi.js"></script>
+    <script src="js/algorithms/fortuneVoronoi.js"></script>
+    <script src="js/algorithms/intervalTree.js"></script>
+    <script src="js/algorithms/segmentTree.js"></script>
+    <script src="js/algorithms/duality.js"></script>
+    <script src="js/algorithms/rectangleUnion.js"></script>
+    <script src="js/algorithms/rectangleIntersection.js"></script>
+    <script src="js/algorithms/artGallery.js"></script>
+
+    <!-- Load UI controls -->
+    <script src="js/ui/controls.js"></script>
+
+    <!-- Export utilities -->
+    <script src="js/export-utils.js"></script>
+
+    <!-- Main sketch -->
+    <script src="js/main.js"></script>
+
+    <script>
+      function toggleCollapsible(id, btn) {
+        const content = document.getElementById(id);
+        const toggle = document.getElementById(id + "-toggle");
+
+        // If a button was provided, toggle aria-expanded on it; otherwise
+        // try to find a controlling button by convention.
+        let button = btn;
+        if (!button) {
+          button = document.querySelector('[aria-controls="' + id + '"]');
+        }
+
+        const open = content.classList.contains("collapsed");
+        if (open) {
+          content.classList.remove("collapsed");
+          if (button) button.setAttribute("aria-expanded", "true");
+          if (toggle) {
+            toggle.innerHTML =
+              '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right-icon lucide-chevron-right"><path d="m9 18 6-6-6-6" /></svg>';
+          }
+        } else {
+          content.classList.add("collapsed");
+          if (button) button.setAttribute("aria-expanded", "false");
+          if (toggle) {
+            toggle.innerHTML =
+              '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down-icon lucide-chevron-down"><path d="m6 9 6 6 6-6" /></svg>';
+          }
+        }
+      }
+    </script>
+
+    <script>
+      // Randomize popover UI wiring
+      (function () {
+        const randomizeActionBtn = document.getElementById("randomize-btn");
+        const randomizeToggleBtn = document.getElementById(
+          "randomize-toggle-btn"
+        );
+        const pop = document.getElementById("randomize-popover");
+        const popClose = document.getElementById("randomize-popover-close");
+        const getRandCountEl = () => document.getElementById("rand-count");
+        const getRandCountValueEl = () =>
+          document.getElementById("rand-count-value-pop");
+        const applyBtn = document.getElementById("randomize-apply");
+        const cancelBtn = document.getElementById("randomize-cancel");
+
+        if (!randomizeToggleBtn || !pop) return;
+
+        let lastFocusedBeforeOpen = null;
+
+        function getFocusableElements(container) {
+          return Array.from(
+            container.querySelectorAll(
+              'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+            )
+          ).filter((el) => el.offsetParent !== null);
+        }
+
+        function openPopover() {
+          lastFocusedBeforeOpen = document.activeElement;
+          pop.setAttribute("aria-hidden", "false");
+          pop.setAttribute("aria-modal", "true");
+          randomizeToggleBtn.setAttribute("aria-expanded", "true");
+          // Render algorithm-specific options if available
+          try {
+            const alg = document.getElementById("algorithm-select")?.value;
+            if (typeof window.renderRandomizeOptions === "function")
+              window.renderRandomizeOptions(alg);
+          } catch (e) {}
+          const randCount = getRandCountEl();
+          const randCountValuePop = getRandCountValueEl();
+          if (randCount && randCountValuePop)
+            randCountValuePop.textContent = randCount.value;
+          lucide.createIcons();
+          // focus first control for keyboard users
+          setTimeout(() => {
+            const focusables = getFocusableElements(pop);
+            if (focusables.length) focusables[0].focus();
+          }, 50);
+          // attach keydown listener for focus trap and ESC
+          document.addEventListener("keydown", onPopoverKeyDown);
+        }
+
+        function closePopover() {
+          pop.setAttribute("aria-hidden", "true");
+          pop.removeAttribute("aria-modal");
+          randomizeToggleBtn.setAttribute("aria-expanded", "false");
+          if (
+            lastFocusedBeforeOpen &&
+            typeof lastFocusedBeforeOpen.focus === "function"
+          )
+            lastFocusedBeforeOpen.focus();
+          // detach keydown listener
+          document.removeEventListener("keydown", onPopoverKeyDown);
+        }
+
+        function onPopoverKeyDown(e) {
+          // If modifier keys are held, allow browser/OS shortcuts to work and
+          // don't intercept the event. We still handle plain Escape and Tab
+          // behavior for accessibility when no modifiers are pressed.
+          if (e.ctrlKey || e.altKey || e.metaKey || e.shiftKey) return;
+
+          if (e.key === "Escape" || e.key === "Esc") {
+            // No modifier: handle Escape to close popover
+            e.preventDefault();
+            closePopover();
+            return;
+          }
+          if (e.key === "Tab") {
+            const focusables = getFocusableElements(pop);
+            if (!focusables.length) return;
+            const first = focusables[0];
+            const last = focusables[focusables.length - 1];
+            if (e.shiftKey) {
+              if (document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+              }
+            } else {
+              if (document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
+              }
+            }
+          }
+        }
+
+        // Toggle via click or keyboard
+        randomizeToggleBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const opened = pop.getAttribute("aria-hidden") === "false";
+          if (opened) closePopover();
+          else openPopover();
+        });
+        randomizeToggleBtn.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+            e.preventDefault();
+            randomizeToggleBtn.click();
+          }
+        });
+
+        popClose.addEventListener("click", closePopover);
+
+        // Sync slider value
+        const observeRandCount = () => {
+          const randCount = getRandCountEl();
+          const randCountValuePop = getRandCountValueEl();
+          if (!randCount) return;
+          randCount.addEventListener("input", (e) => {
+            const v = e.target.value;
+            if (randCountValuePop) randCountValuePop.textContent = v;
+          });
+        };
+
+        if (applyBtn) {
+          applyBtn.addEventListener("click", () => {
+            const randCountEl = getRandCountEl();
+            const count = parseInt(randCountEl?.value ?? "30", 10) || 30;
+            const distribution =
+              document.getElementById("rand-distribution")?.value || "uniform";
+            const seed = document.getElementById("rand-seed")?.value || "";
+            if (typeof window.applyRandomize === "function") {
+              window.applyRandomize({ count, distribution, seed });
+            } else {
+              // Fallback: trigger main randomize action (existing handler)
+              if (randomizeActionBtn) randomizeActionBtn.click();
+            }
+            closePopover();
+          });
+        }
+
+        if (cancelBtn) cancelBtn.addEventListener("click", closePopover);
+        // NOTE: Dynamic rand-count listeners are wired by renderRandomizeOptions().
+      })();
+    </script>
+
+    <!-- Load lucide-icons -->
+    <script>
+      lucide.createIcons();
+    </script>
+    <script>
+      // Prevent pointer/mouse/touch/wheel events from reaching the canvas when
+      // interacting with overlay controls. This attaches bubble-phase handlers
+      // to the overlay container and stops propagation/default on relevant events.
+      (function () {
+        // Scoped blocking: attach bubble-phase handlers to overlay containers so
+        // child controls receive events first. When events bubble up to the
+        // overlay we stop propagation to prevent them reaching the canvas.
+        const containers = Array.from(
+          document.querySelectorAll(".control-overlay, .panel-overlay")
+        );
+        if (!containers.length) return;
+
+        const isInCollapsibleContent = (el) =>
+          !!el.closest(".collapsible-content");
+
+        // Track touch start Y per container so we can emulate native scrolling
+        // inside panels while preventing the canvas from receiving the touch.
+        const touchStartY = new WeakMap();
+
+        const forwardWheelToContent = (content, deltaY) => {
+          // Simple scroll-by behavior. Use scrollTop += deltaY so the panel
+          // scrolls naturally. Clamp naturally by browser when at bounds.
+          content.scrollTop += deltaY;
+        };
+
+        const makeHandler = (container) => (e) => {
+          const target = e.target;
+          const content =
+            target.closest(".collapsible-content") ||
+            container.querySelector(".collapsible-content");
+
+          // Special-case: wheel events should scroll the closest .collapsible-content
+          // (if present) and never fall through to the canvas. If no content is
+          // found, we still stop propagation to prevent the canvas from scrolling.
+          if (e.type === "wheel") {
+            if (content) {
+              // Forward the wheel delta to the panel content and prevent the
+              // event from reaching the canvas.
+              if (e.cancelable) e.preventDefault();
+              forwardWheelToContent(content, e.deltaY);
+              e.stopPropagation();
+              return;
+            } else {
+              // No scrollable panel content underneath - prevent canvas scroll.
+              if (e.cancelable) e.preventDefault();
+              e.stopPropagation();
+              return;
+            }
+          }
+
+          // Touch handling: emulate drag-to-scroll inside the panel body
+          if (e.type === "touchstart") {
+            const t = e.touches && e.touches[0];
+            if (t) touchStartY.set(container, t.clientY);
+            // allow child handlers to run
+            return;
+          }
+
+          if (e.type === "touchmove") {
+            const t = e.touches && e.touches[0];
+            if (!t) return;
+            const startY = touchStartY.get(container) || t.clientY;
+            const delta = startY - t.clientY;
+            if (content) {
+              // scroll the content manually
+              if (e.cancelable) e.preventDefault();
+              forwardWheelToContent(content, delta);
+              touchStartY.set(container, t.clientY);
+              e.stopPropagation();
+              return;
+            } else {
+              // No scrollable panel content, block to avoid canvas touch scroll
+              if (e.cancelable) e.preventDefault();
+              e.stopPropagation();
+              return;
+            }
+          }
+
+          // For all other events (clicks, pointer events, dblclick, etc.)
+          // stop propagation at the overlay so canvas/global handlers don't run.
+          e.stopPropagation();
+        };
+
+        containers.forEach((c) => {
+          [
+            "pointerdown",
+            "pointerup",
+            "pointermove",
+            "mousemove",
+            "mouseover",
+            "mousedown",
+            "mouseup",
+            "click",
+            "dblclick",
+            "touchstart",
+            "touchmove",
+            "touchend",
+            "wheel",
+          ].forEach((evt) => {
+            c.addEventListener(evt, makeHandler(c), { passive: false });
+          });
+        });
+      })();
+    </script>
+  </body>
+</html>

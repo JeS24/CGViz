@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the following metadata."
+title: "CGViz: Computational Geometry Interactive Visualizations"
+version: "0.1.0"
+type: "software"
+date-released: 2025-08-23
+authors:
+  - family-names: "Shivottam"
+    given-names: "Jyotirmaya"
+    orcid: "https://orcid.org/0000-0002-2688-9421"
+    affiliation: "National Institute of Science Education and Research, Bhubaneswar, India"
+url: "https://jes24.github.io/CGViz/"
+repository-code: "https://github.com/JeS24/CGViz"
+license: "MIT"
+keywords:
+  - computational geometry
+  - educational
+  - interactive visualization
+  - web-based
+
+# BibTeX entry
+bibtex: |
+  @misc{cgviz,
+    author = {Jyotirmaya Shivottam},
+    title = {CGViz: Computational Geometry Interactive Visualizations},
+    year = {2025},
+    howpublished = {\url{https://github.com/JeS24/CGViz/}}
+  }
