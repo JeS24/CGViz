@@ -1,11 +1,12 @@
 # CGViz - Computational Geometry Interactive Visualizations
 
-> [!TIP] > **🔗 Site:** https://jes24.github.io/CGViz/
+> [!TIP]
+> **🔗 Site:** https://jes24.github.io/CGViz/
 
 > [!NOTE]
 > Open in a modern _**Desktop**_ browser. It's a static site and so, it runs locally. Phone responsiveness is WIP. See Issue [#1](https://github.com/JeS24/CGViz/issues/1).
 
-<video src="./assets/cgviz-hero.mp4" autoplay loop muted playsinline style="max-width: 100%; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"></video>
+![CGViz Hero](./assets/cgviz-hero.gif)
 
 CGViz is an HTML/CSS/JS application for interactive, step-by-step visualizations of classic Computational Geometry topics and algorithms. It is designed for exploration and teaching, making it useful for classroom demonstrations or self-study. The web app pre-computes algorithm steps (where applicable) and allows you to play them back, step forward/backward, inspect intermediate states, and export visuals for slides or handouts. It also provides relevant resources and references for each topic.
 
