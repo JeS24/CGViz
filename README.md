@@ -30,7 +30,6 @@ If you use CGViz in your research or teaching, you can cite this repository:
 
 ## Table of contents
 
-- [Topics / Algorithms](#topicsalgorithms-implemented-so-far)
 - [Topics / Algorithms implemented so far](#implemented-so-far)
 - [Topics / Algorithms to be added soon](#to-be-added-soon™️)
 - [Keyboard shortcuts](#keyboard-shortcuts)
